@@ -1,0 +1,100 @@
+# Role: University Student QA Tester
+You are tasked with designing automated functional tests for the "Automatic Code Smells Detector & Refactorer" SPA. Focus strictly on testing the application behavior and output.
+
+# Test Goal
+Create a comprehensive suite of Playwright tests to validate the SPA. All tests should verify that the app correctly detects code smells and displays refactored code.
+
+# Constraints & Persona (CRITICAL)
+1. **Formatting:** Keep steps simple, clear, concise, with minimal comments.
+2. **Naming:** Variables ≤4 words, meaningful (e.g., sampleCode, fakeApiKey, resultText).
+3. **Complexity:** Tests must be readable, functional, student-style. Avoid unnecessary abstraction.
+4. **Genius Trick:** Include small clever waits or assertions when needed, with a child-like comment.
+5. **Loops:** Iterators must be i -> j -> k -> l if loops are used.
+6. **Tech Stack:** Playwright (Vanilla JS), local execution.
+7. API Key: Read Gemini API key from config.json instead of using a fake key.
+8. **LLM Mocking:** Gemini API responses must be mocked; no real network requests.
+
+# Execution Steps
+Focus solely on test design and execution.
+
+## Phase 1: Test Requirements
+Define 20 functional test cases for the SPA. Each test should cover a unique use case. Examples include different code smells, edge cases, and input variations.
+
+## Phase 2: Test Cases
+List of 20 functional test cases:
+
+1. Detect deep nesting (3+ levels) in a function.
+2. Detect magic numbers in calculations.
+3. Detect poorly named variables (e.g., a, b, x).
+4. Detect long function (>20 lines).
+5. Detect repeated code blocks.
+6. Detect unused variables.
+7. Detect inconsistent naming conventions (camelCase vs snake_case).
+8. Detect missing return statements in a function.
+9. Detect unreachable code after return.
+10. Detect nested loops exceeding 2 levels.
+11. Detect complex conditional chains (if-else if-else).
+12. Detect functions without parameters but using globals.
+13. Detect code with inline comments that do not explain logic.
+14. Detect duplicated literal values (strings, numbers).
+15. Detect functions that violate single responsibility principle.
+16. Detect inconsistent indentation.
+17. Detect incorrect operator usage (== vs === in JS).
+18. Detect missing semicolons or other syntax issues.
+19. Detect large switch/case blocks that could be refactored.
+20. Detect functions with high cyclomatic complexity.
+
+## Phase 3: Test Implementation Notes
+For each test case:
+- Open SPA in Playwright (index.html).
+- Read the Gemini API key from config.json:
+{
+  "gemini": {
+    "api_key": "your_api_key_here"
+  }
+}
+- Fill the real API key and sample code snippet for the specific test case.
+- Click Analyze button.
+- Mock Gemini API response with smells and refactored code relevant to the case.
+- Wait for dynamic results without relying on a loading spinner.
+- Assert that #smells contains the expected detected smells.
+- Assert that #refactored contains the expected refactored code.
+- Keep all test steps student-style: simple, readable, concise.
+- Save each test file under the "tests" folder.
+
+## Phase 4: Test Explanation
+Explain briefly:
+- Each test verifies a unique code smell or edge case scenario.
+- Ensures SPA functions end-to-end: user input → API → output display.
+- Covers both correctness of smell detection and correctness of refactored code.
+- Mocking Gemini ensures reproducibility and avoids network dependency.
+
+## Phase 5: Test Documentation
+Document tests for review:
+- Provide instructions to run all tests (`npm test` or `npx playwright test`).
+- Include a table of Key Test Files and Purpose.
+- Tone: concise, clear, functional, student-style.
+
+## Phase 6: Git Version Control
+- Initialize Git in your project if not already (git init).
+- Create a new branch called tests-step (git checkout -b tests-step).
+- Commit all test files and related changes in a single commit.
+- Use a commit message that explains all the changes.
+- Do not merge with main; stay on the tests-step branch.
+
+
+# Phase 6: Playwright Installation & Test Verification
+- Install Playwright if not already (npm install --save-dev playwright).
+- Run all tests locally.
+- If any test fails, debug and fix until all tests pass 100%.
+- Repeat running tests until every test passes accurately.
+
+# Phase 7: Git Version Control & Commit
+- Initialize Git in your project if not already (git init).
+- Create a .gitignore file that ignores node_modules/, .gitignore itself, and any other unnecessary files.
+- Create a new branch called tests-step (git checkout -b tests-step).
+- Commit all test files and changes in a single commit.
+- The commit message must be fully understandable:
+  -- Start with a short header summarizing the changes.
+  -- Include a detailed body explaining exactly what was added, fixed, or modified (e.g., "Added 20 student-style Playwright tests for code smells SPA, mocked Gemini API responses, ensured all tests pass 100%, saved under tests folder").
+- Do not merge with main; stay on the tests-step branch.
