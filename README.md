@@ -19,6 +19,11 @@ npx playwright install
 npm test
 ```
 
+**Run Tests Directly:**
+```bash
+npx playwright test
+```
+
 ## Usage Example
 
 1. Open `index.html` in web browser
@@ -39,7 +44,7 @@ npm test
 | `index.html` | Main page structure with input fields and result panels |
 | `styles.css` | Grid layout styling for split-view results display |
 | `script.js` | Gemini API integration and DOM manipulation logic |
-| `tests/code-smell.spec.js` | Playwright end-to-end test for user workflow |
+| `tests/code-smell.spec.js` | Playwright functional suite for code smell detection and refactoring |
 | `playwright.config.js` | Test configuration file |
 | `package.json` | Dependencies for testing |
 
@@ -55,7 +60,7 @@ Designed client-side architecture with Gemini API integration. Structured prompt
 Implemented vanilla JavaScript SPA with fetch API calls to Gemini. Used structured prompt with "SMELLS:" and "REFACTORED:" sections for reliable parsing.
 
 ### Phase 4: Testing
-Created Playwright test covering full user journey with mocked API responses. Validates input handling, async operations, and result display.
+Created Playwright tests covering 20 functional user journeys with mocked API responses. Validates input handling, async operations, and result display.
 
 ### Phase 5: Documentation
 Generated this README with installation instructions and project structure overview.
@@ -75,3 +80,15 @@ Generated this README with installation instructions and project structure overv
 - Poor variable naming
 - Deep nesting (>3 levels)
 - Duplicate code blocks
+
+## Test Documentation
+
+**How to run all tests:**
+- `npm test`
+- `npx playwright test`
+
+**Key Test Files and Purpose**
+
+| File | Purpose |
+|------|---------|
+| tests/code-smell.spec.js | 20 functional tests for smells and refactored output |
