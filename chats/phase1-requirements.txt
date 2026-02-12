@@ -1,0 +1,306 @@
+USER:
+# Context
+University Software Engineering course (22916). I'm building a single-page web application that uses Google Gemini as the Feature LLM. The app runs on localhost only — no deployment. Team of 3.
+
+Grading breakdown: following instructions (10%), quality of LLM usage and reasoning (20%), quality of produced artifacts (70%).
+
+# Setup
+Create these if they don't exist:
+- Directories: src, tests, chats, screenshots, docs
+- .gitignore containing: node_modules/ and config.json
+- config.json containing: {"gemini":{"api_key":"PLACEHOLDER"}}
+
+# Task: Phase 1 — Requirements Engineering
+I want to build an "Automatic Code Smells Detector & Refactorer":
+- User pastes source code into the app
+- App sends it to Gemini API for analysis
+- App displays detected code smells and a refactored version of the code
+
+Define the feature. Write functional requirements and acceptance criteria. Be specific, testable, and thorough — these will drive the architecture and implementation.
+
+Create the file docs/requirements.md with your output. Use clean markdown with tables for requirements and acceptance criteria.
+
+A:
+★ Insight ─────────────────────────────────────
+Requirements Engineering drives grading. Since artifacts are 70% of the grade, requirements that are specific and testable let you write code confidently — each AC maps directly to a feature you can demo. Vague requirements produce vague implementations that are hard to justify to graders.
+
+Functional vs. Non-Functional split matters here. For an LLM-based app, the interesting FRs are the prompt contract (what you ask Gemini) and the output contract (what you display). Both need explicit structure in requirements so the architecture reflects intentional decisions.
+─────────────────────────────────────────────────
+
+[Created: .gitignore, config.json, src/, tests/, chats/, screenshots/, docs/]
+
+[Created: docs/requirements.md — full contents below]
+
+---
+
+# Requirements: Automatic Code Smells Detector & Refactorer
+
+**Project:** 22916 Software Engineering — Phase 1
+**Version:** 1.0
+**Date:** 2026-02-12
+**Team size:** 3
+
+---
+
+## 1. Product Overview
+
+A single-page web application (SPA) that accepts raw source code from the user, submits it to the Google Gemini API, and returns a structured report of detected code smells alongside a refactored version of the code. The application runs entirely on `localhost` with no backend server or database.
+
+---
+
+## 2. Scope
+
+| In Scope | Out of Scope |
+|---|---|
+| Code smell detection via Gemini API | User accounts / authentication |
+| Refactored code generation | Server-side storage or databases |
+| Single-page frontend application | Deployment beyond localhost |
+| Support for common programming languages | Automated test execution of refactored code |
+| Copy-to-clipboard for output | Version history / diff tracking |
+
+---
+
+## 3. Actors
+
+| Actor | Description |
+|---|---|
+| **User** | Developer who pastes source code into the app |
+| **Gemini API** | Google Generative AI endpoint that performs analysis |
+
+---
+
+## 4. Functional Requirements
+
+### FR-01 — Code Input
+
+| ID | Requirement |
+|---|---|
+| FR-01.1 | The application SHALL provide a multi-line text area where the user can paste or type source code. |
+| FR-01.2 | The text area SHALL accept a minimum of 10 characters and a maximum of 20,000 characters of input. |
+| FR-01.3 | The application SHALL display a visible character count so the user knows how close they are to the limit. |
+| FR-01.4 | The application SHALL provide a language selector (dropdown) allowing the user to specify the programming language (e.g., Python, JavaScript, Java, C++, TypeScript, Go, other). |
+| FR-01.5 | The language selection SHALL default to "Auto-detect" if no language is chosen. |
+| FR-01.6 | The application SHALL provide a clearly labelled "Analyze" button to submit the code for analysis. |
+| FR-01.7 | The "Analyze" button SHALL be disabled when the input text area is empty or below 10 characters. |
+| FR-01.8 | The application SHALL provide a "Clear" button that resets the input text area, language selector, and all output sections to their initial state. |
+
+---
+
+### FR-02 — Gemini API Integration
+
+| ID | Requirement |
+|---|---|
+| FR-02.1 | On "Analyze" click, the application SHALL construct a structured prompt containing the user's code and the selected (or auto-detected) language, then send it to the Gemini API. |
+| FR-02.2 | The prompt sent to Gemini SHALL explicitly request: (a) a list of code smells, each with a name, severity, location hint, and explanation; (b) a fully refactored version of the code with the smells addressed. |
+| FR-02.3 | The application SHALL instruct Gemini to return its response in a structured JSON format with defined field names (`smells`, `refactored_code`, `summary`). |
+| FR-02.4 | The application SHALL read the Gemini API key from `config.json` at runtime, never hard-coding it in source files. |
+| FR-02.5 | The application SHALL display a loading/progress indicator while the API request is in flight. |
+| FR-02.6 | The application SHALL enforce a request timeout of 30 seconds; if exceeded, an error message SHALL be displayed. |
+| FR-02.7 | The application SHALL handle and display human-readable error messages for: (a) missing/invalid API key, (b) network failure, (c) malformed or unparseable API response, (d) API rate-limit or quota errors. |
+
+---
+
+### FR-03 — Code Smell Report Display
+
+| ID | Requirement |
+|---|---|
+| FR-03.1 | The application SHALL display the list of detected code smells in a dedicated "Smells Detected" panel. |
+| FR-03.2 | Each code smell entry SHALL display: name, severity level (Critical / Major / Minor), a brief explanation, and the location hint (e.g., line range or function name) provided by Gemini. |
+| FR-03.3 | Smell entries SHALL be visually differentiated by severity (e.g., colour-coding: red for Critical, amber for Major, blue for Minor). |
+| FR-03.4 | If no code smells are detected, the panel SHALL display a clear "No code smells detected" message. |
+| FR-03.5 | The application SHALL display the total count of smells found (e.g., "3 smells found"). |
+| FR-03.6 | The application SHALL display the `summary` field from Gemini's response as a short paragraph above the smell list. |
+
+---
+
+### FR-04 — Refactored Code Display
+
+| ID | Requirement |
+|---|---|
+| FR-04.1 | The application SHALL display the refactored code in a dedicated "Refactored Code" panel using a monospace, syntax-highlighted code block. |
+| FR-04.2 | The refactored code panel SHALL include a "Copy to Clipboard" button. |
+| FR-04.3 | After clicking "Copy to Clipboard", the button label SHALL change to "Copied!" for 2 seconds, then revert to its original label. |
+| FR-04.4 | The original input code and the refactored output SHALL be displayed side by side (or in clearly labelled tabs) to facilitate comparison. |
+
+---
+
+### FR-05 — Chat / Follow-up Interaction
+
+| ID | Requirement |
+|---|---|
+| FR-05.1 | After an initial analysis, the application SHALL display a follow-up text input allowing the user to ask Gemini clarifying questions about the detected smells or the refactoring. |
+| FR-05.2 | Follow-up messages SHALL be sent to Gemini with the original code and the analysis result included as context in the prompt. |
+| FR-05.3 | Gemini's follow-up responses SHALL be displayed in a scrollable chat log beneath the analysis results. |
+| FR-05.4 | Each message in the chat log SHALL be clearly attributed (e.g., "You" vs "Gemini"). |
+| FR-05.5 | The chat log for each session SHALL be exportable as a `.txt` file saved to the `chats/` directory convention (i.e., the user is prompted to download it). |
+
+---
+
+### FR-06 — Session & State Management
+
+| ID | Requirement |
+|---|---|
+| FR-06.1 | The application state (input code, detected smells, refactored code, chat history) SHALL persist within the browser session (i.e., survive page scroll, but not a full page reload). |
+| FR-06.2 | Clicking "Clear" SHALL reset all state and return the UI to its initial empty state. |
+
+---
+
+## 5. Non-Functional Requirements
+
+| ID | Category | Requirement |
+|---|---|---|
+| NFR-01 | Usability | The UI SHALL be operable without instructions; all controls SHALL have visible labels or placeholder text. |
+| NFR-02 | Performance | The application SHALL render the full analysis result within 2 seconds of receiving the API response. |
+| NFR-03 | Accessibility | All interactive elements SHALL have ARIA labels; colour-coded severity SHALL also use a text label (not colour alone). |
+| NFR-04 | Security | The API key SHALL never be logged to the browser console or embedded in any HTTP request URL. |
+| NFR-05 | Maintainability | The Gemini prompt template SHALL be defined in a single, clearly named constant or configuration object for easy modification. |
+| NFR-06 | Compatibility | The application SHALL function correctly on the latest stable version of Chrome and Firefox on localhost. |
+
+---
+
+## 6. Acceptance Criteria
+
+### AC-01 — Code Input
+
+| # | Given | When | Then |
+|---|---|---|---|
+| AC-01.1 | The app is loaded | The text area is empty | The "Analyze" button is disabled |
+| AC-01.2 | The app is loaded | The user types 10+ characters into the text area | The "Analyze" button becomes enabled |
+| AC-01.3 | Text is in the input area | The user clicks "Clear" | The text area, language selector, and all output panels reset to default |
+| AC-01.4 | The user is typing code | At any time | A live character count is visible and accurate |
+| AC-01.5 | The input has reached 20,000 characters | The user attempts to type more | No additional input is accepted |
+
+### AC-02 — Gemini API Integration
+
+| # | Given | When | Then |
+|---|---|---|---|
+| AC-02.1 | Valid code is in the input | The user clicks "Analyze" | A loading indicator appears immediately and the "Analyze" button becomes disabled |
+| AC-02.2 | A valid API key is in `config.json` | The Gemini API call succeeds | The loading indicator disappears and results are displayed |
+| AC-02.3 | `config.json` contains `"PLACEHOLDER"` as the key | The user clicks "Analyze" | An error message "Invalid or missing API key" is displayed |
+| AC-02.4 | The device is offline | The user clicks "Analyze" | An error message "Network error. Please check your connection." is displayed |
+| AC-02.5 | A valid request is sent | The API does not respond within 30 seconds | An error message "Request timed out. Please try again." is displayed |
+| AC-02.6 | Any analysis is triggered | The request is sent | The API key does not appear in the browser console or network request URL |
+
+### AC-03 — Code Smell Report
+
+| # | Given | When | Then |
+|---|---|---|---|
+| AC-03.1 | Gemini returns 3 smells | The result is rendered | Exactly 3 smell cards are shown, each with name, severity, explanation, and location |
+| AC-03.2 | Gemini returns a Critical smell | The result is rendered | That smell card uses red visual styling AND displays the text "Critical" |
+| AC-03.3 | Gemini finds no smells | The result is rendered | The smells panel displays "No code smells detected" |
+| AC-03.4 | Smells are present | The result is rendered | A count badge shows the correct total (e.g., "3 smells found") |
+| AC-03.5 | A summary is returned by Gemini | The result is rendered | The summary paragraph appears above the smell list |
+
+### AC-04 — Refactored Code
+
+| # | Given | When | Then |
+|---|---|---|---|
+| AC-04.1 | Analysis succeeds | The result is rendered | Refactored code appears in a monospace code block with syntax highlighting |
+| AC-04.2 | Refactored code is displayed | The user clicks "Copy to Clipboard" | The refactored code is copied and the button label reads "Copied!" |
+| AC-04.3 | "Copy to Clipboard" was clicked | 2 seconds pass | The button label reverts to "Copy to Clipboard" |
+| AC-04.4 | Analysis succeeds | The result is rendered | Both original and refactored code are visible simultaneously for comparison |
+
+### AC-05 — Follow-up Chat
+
+| # | Given | When | Then |
+|---|---|---|---|
+| AC-05.1 | An analysis has been completed | The page is viewed | A follow-up question input and send button are visible |
+| AC-05.2 | The user types a follow-up question | They click send | Gemini responds with the original code and analysis as context |
+| AC-05.3 | A follow-up response is received | It is rendered | The chat log shows both the user message ("You") and Gemini's reply ("Gemini") |
+| AC-05.4 | A chat history exists | The user clicks "Export Chat" | A `.txt` download is triggered containing the full chat log |
+
+---
+
+## 7. Prompt Contract (Gemini API)
+
+The structured prompt sent to Gemini for the initial analysis SHALL follow this template:
+
+```
+You are a senior software engineer specialising in code quality.
+
+Analyse the following {LANGUAGE} code for code smells.
+Return your response as valid JSON matching this exact schema:
+
+{
+  "summary": "<2-3 sentence overall assessment>",
+  "smells": [
+    {
+      "name": "<smell name>",
+      "severity": "<Critical | Major | Minor>",
+      "location": "<function name, line range, or description>",
+      "explanation": "<why this is a problem and its impact>"
+    }
+  ],
+  "refactored_code": "<complete refactored source code as a string>"
+}
+
+If no code smells are found, return an empty smells array.
+Do NOT include markdown fences or any text outside the JSON object.
+
+Code to analyse:
+\`\`\`{LANGUAGE}
+{CODE}
+\`\`\`
+```
+
+---
+
+## 8. Glossary
+
+| Term | Definition |
+|---|---|
+| Code Smell | A surface-level indicator in source code that suggests a deeper design problem (e.g., long method, duplicated code, magic numbers). |
+| Refactoring | Restructuring existing code without changing its external behaviour to improve readability, maintainability, or performance. |
+| SPA | Single-Page Application — a web app that loads once and updates the DOM dynamically. |
+| Gemini API | Google's Generative AI REST API used for natural language and code analysis tasks. |
+| Acceptance Criteria | Conditions that a software feature must satisfy to be accepted by a stakeholder. |
+
+---
+
+★ Insight ─────────────────────────────────────
+The Prompt Contract section is architecturally load-bearing. Defining the exact JSON schema Gemini must return in the requirements (not just in code) means your frontend parsing logic, error handling, and display components can all be designed around a known contract. If Gemini deviates, you have a documented baseline to test against — which directly supports the "quality of LLM usage and reasoning" rubric item.
+
+FR-05 (follow-up chat) adds the most grading value. Including conversation context in subsequent prompts demonstrates a multi-turn LLM usage pattern. This is materially more sophisticated than a single-shot prompt, and it's exactly the kind of reasoning quality graders look for in the 20% LLM quality rubric item.
+─────────────────────────────────────────────────
+
+Here's what was created:
+
+Directory structure:
+Software-proj/
+├── src/
+├── tests/
+├── chats/
+├── screenshots/
+├── docs/
+│   └── requirements.md
+├── .gitignore          (node_modules/, config.json)
+└── config.json         (api_key: PLACEHOLDER)
+
+docs/requirements.md contains:
+
+| Section | What's defined |
+|---|---|
+| FR-01 Code Input | 8 requirements — text area, character limits, language selector, button states |
+| FR-02 Gemini Integration | 7 requirements — prompt construction, JSON contract, API key handling, timeout, error types |
+| FR-03 Smell Report | 6 requirements — per-smell display fields, severity colour coding, empty state |
+| FR-04 Refactored Code | 4 requirements — syntax highlighting, copy-to-clipboard with state feedback, side-by-side view |
+| FR-05 Follow-up Chat | 5 requirements — multi-turn context, chat log, attribution, export |
+| AC-01–05 | 24 Given/When/Then acceptance criteria — directly testable |
+| Prompt Contract | Exact Gemini prompt template with required JSON schema |
+
+The prompt contract in Section 7 is the key design decision for Phase 2 — it defines the data shape your entire frontend will be built around. Want to adjust the schema (e.g., add a `fix_suggestion` field per smell) before we move to architecture?
+
+---
+USER:
+Save our full conversation to chats/phase1-requirements.txt as a verbatim plain text log in this exact format:
+
+USER:
+[my full prompt, copied exactly]
+
+A:
+[your full response, copied exactly]
+
+Then run: git add -A && git commit -m "docs: Phase 1 requirements engineering"
+
+A:
+[saving this file and committing]
