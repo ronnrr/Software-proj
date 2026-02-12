@@ -1,77 +1,97 @@
-# Code Smell Detector
+# Code Smells Detector & Refactorer
 
-Web-based tool that analyzes code for common smells and provides refactored versions using Google Gemini API.
-
-## Project Overview
-
-Single-page application that detects code quality issues including long methods, magic numbers, poor variable names, deep nesting, and duplicate code. Uses Gemini Pro model for intelligent analysis and refactoring suggestions.
+## Overview
+A single-page web app that detects code smells and produces a refactored version using the Google Gemini API. Paste code, click Analyze, and get a severity-ranked smell report with side-by-side original vs. refactored code and a follow-up chat panel. Runs entirely on localhost — no backend, no build step.
 
 ## Installation
 
-1. Clone or download project files
-2. No build process required - pure vanilla JavaScript
-3. Get Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+1. **Clone the repo**
+   ```bash
+   git clone https://github.com/ronnrr/Software-proj.git
+   cd Software-proj
+   ```
 
-**For Testing:**
-```bash
-npm install
-npx playwright install
-npm test
+2. **Install dependencies** (Playwright + serve — only needed for running tests)
+   ```bash
+   npm install
+   ```
+
+3. **Add your Gemini API key**
+   ```bash
+   cp config.example.json config.json
+   # Open config.json and replace PASTE_YOUR_GEMINI_API_KEY_HERE with your key
+   ```
+   Get a free key at [aistudio.google.com](https://aistudio.google.com).
+
+4. **Start the server**
+   ```bash
+   npx serve . -l 3000
+   # or: python -m http.server 3000   (no npm required)
+   ```
+
+5. **Open the app**
+   ```
+   http://localhost:3000/src/
+   ```
+   > The trailing slash on `/src/` is required — it keeps ES module paths resolving correctly.
+
+## Usage
+
+Paste code into the editor, optionally pick a language, then click **Analyze**.
+
+**Sample input:**
+```python
+def d(x, y, z):
+    if x > 0:
+        if y > 0:
+            if z > 0:
+                return x * 3.14159 + y * 2.71828 + 42
+    return -1
 ```
 
-## Usage Example
+**Before analysis:**
+![Before](screenshots/before.png)
 
-1. Open `index.html` in web browser
-2. Enter Gemini API key in top field
-3. Paste code into textarea
-4. Click "Analyze Code"
-5. View detected smells in left panel
-6. View refactored code in right panel
+**After analysis — smell cards, severity badges, refactored code:**
+![After](screenshots/after.png)
 
-**Screenshot locations (if adding):**
-- Initial interface: Shows empty form with API key input
-- Analysis results: Shows split view with smells and refactored code
-
-## Key Files
-
-| File | Description |
-|------|-------------|
-| `index.html` | Main page structure with input fields and result panels |
-| `styles.css` | Grid layout styling for split-view results display |
-| `script.js` | Gemini API integration and DOM manipulation logic |
-| `tests/code-smell.spec.js` | Playwright end-to-end test for user workflow |
-| `playwright.config.js` | Test configuration file |
-| `package.json` | Dependencies for testing |
+---
 
 ## Project Phases
 
-### Phase 1: Requirements Engineering
-Defined functional requirements and acceptance criteria for code smell detection feature.
+### Phase 1 — Requirements Engineering
+Defined 24 acceptance criteria across 6 functional requirement groups (code input, Gemini integration, smell report, refactored code, chat, state management) plus a formal Gemini prompt contract.
+- [Phase 1 Chat](chats/phase1-requirements.txt) — AI-assisted session that produced `docs/requirements.md`; covers prompt contract design, JSON output schema, and why multi-turn chat adds grading value.
 
-### Phase 2: Architecture
-Designed client-side architecture with Gemini API integration. Structured prompt format to ensure consistent response parsing.
+### Phase 2 — Architecture
+Designed a frontend-only SPA with 5 single-responsibility JS modules; documented all technology, LLM integration, and team responsibility decisions.
+- [Phase 2 Chat](chats/phase2-architecture.txt) — AI-assisted session that produced `docs/architecture.md`; covers the `x-goog-api-key` header strategy, why no backend is needed, and the `response_mime_type: application/json` forcing trick.
 
-### Phase 3: Coding
-Implemented vanilla JavaScript SPA with fetch API calls to Gemini. Used structured prompt with "SMELLS:" and "REFACTORED:" sections for reliable parsing.
+### Phase 3 — Coding & Testing
 
-### Phase 4: Testing
-Created Playwright test covering full user journey with mocked API responses. Validates input handling, async operations, and result display.
+#### Key Files
+| File | Description |
+|------|-------------|
+| [src/index.html](src/index.html) | Single HTML page; all panels, ARIA labels, and module `<script>` tag |
+| [src/js/app.js](src/js/app.js) | Entry point; reads config, binds all event listeners, orchestrates modules |
+| [src/js/api.js](src/js/api.js) | Gemini API wrapper; `loadConfig()`, `analyzeCode()`, `sendFollowUp()`; timeout and error handling |
+| [src/js/prompt.js](src/js/prompt.js) | Single source of truth for both prompt templates (analysis + follow-up) |
+| [src/js/ui.js](src/js/ui.js) | All DOM writes; `renderResults()`, `renderSmells()`, `showError()`, `reset()` |
+| [src/js/state.js](src/js/state.js) | In-memory session state; `setApiKey`, `setAnalysisResult`, `reset()` |
+| [src/css/styles.css](src/css/styles.css) | All styles; severity colour-coding, side-by-side layout, loading spinner |
+| [tests/code-smells.spec.js](tests/code-smells.spec.js) | Playwright E2E test — full user flow, zero real API calls |
+| [docs/requirements.md](docs/requirements.md) | Phase 1 deliverable: FR/NFR/AC tables and Gemini prompt contract |
+| [docs/architecture.md](docs/architecture.md) | Phase 2 deliverable: all design decisions, data flow, file structure |
 
-### Phase 5: Documentation
-Generated this README with installation instructions and project structure overview.
+#### Testing
+The Playwright E2E test opens the app in a real Chromium browser, types code with intentional smells, triggers analysis, and asserts that smell names, severity badges, smell count, and refactored code all render correctly. Both the Gemini API and `config.json` are intercepted with `page.route()` — the test runs deterministically with no real network calls and no API key required, making it a reliable regression guard for the full rendering pipeline.
+- [Testing Chat](chats/phase3-testing.txt) — AI-assisted session that produced the Playwright test; documents the ES module trailing-slash bug discovered during debugging and the double-serialised JSON mock format.
 
-## Technical Notes
+## Running Tests
 
-- No server required - runs entirely client-side
-- API key stored in memory only (not persisted)
-- Response parsing uses string split on section markers
-- Error handling for network failures and missing inputs
-- Grid CSS layout for responsive split-view results
+```bash
+npx playwright install chromium   # first time only
+npm test
+```
 
-## Common Code Smells Detected
-
-- Long methods (>20 lines)
-- Magic numbers
-- Poor variable naming
-- Deep nesting (>3 levels)
-- Duplicate code blocks
+The test server starts automatically. Expected output: **1 passed**.

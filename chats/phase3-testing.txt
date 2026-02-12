@@ -1,0 +1,167 @@
+================================================================================
+Code Smells Detector — Phase 3: Testing
+Chat Log — Playwright E2E Test Implementation
+Date: 2026-02-12
+================================================================================
+
+USER:
+# Context
+University SE course (22916). I've built a single-page web app that detects code smells using Gemini API. The app is complete and working in src/.
+
+# Task
+The assignment says: "Implement one meaningful automated system-level functional test using Playwright. Test a real user flow."
+
+Do this:
+1. Read all source files in src/ to understand the exact DOM structure — element IDs, class names, how results are rendered, how the Gemini API is called and parsed.
+2. Install Playwright as a dev dependency. Install Chromium browser.
+3. Create playwright.config.js with a webServer that serves the app locally.
+4. Write ONE test file in tests/ that covers the full user flow:
+   - Open the app
+   - Enter sample code with obvious smells into the input
+   - Click the button that triggers analysis
+   - Mock the Gemini API response using page.route() — NO real network requests
+   - The mock response MUST match the exact structure the app expects (you must determine this from reading src/)
+   - Assert that detected smells appear in the output area
+   - Assert that refactored code appears in the output area
+5. Run the test. It must pass.
+
+# Quality
+- Clean, readable test code
+- Meaningful assertions
+- Proper mocking — no real API calls
+- Generous timeouts for async operations
+
+Start by reading src/. Then build and run the test. Show me the result.
+
+================================================================================
+
+A:
+[Read src/index.html, src/js/api.js, src/js/ui.js, src/js/app.js, src/js/state.js,
+config.json, checked for existing package.json and tests/]
+
+★ Insight ─────────────────────────────────────
+The app fetches '../config.json' relative to the page URL (not the script URL), so
+the static server must serve the project root — not just src/. The Gemini response
+wraps a JSON-string inside candidates[0].content.parts[0].text, so the mock must
+reproduce that exact nesting, with the inner analysis JSON stringified as text.
+─────────────────────────────────────────────────
+
+I've read everything I need. Here's the full picture before I build:
+- Analyze button ID: #analyze-btn, enabled when code.length >= 10
+- Gemini endpoint: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent
+- Response path: data.candidates[0].content.parts[0].text → that text is itself a
+  JSON string with { summary, smells[], refactored_code }
+- Output DOM: #results-section, #summary-text, #smell-count-badge, #smells-list
+  (.smell-card), #refactored-code
+
+Let's build it.
+
+[Ran: npm init -y]
+[Ran: npm install --save-dev @playwright/test serve]
+[Ran: npx playwright install chromium]
+[Verified serve version 14.2.5 and -l flag syntax]
+[Added "type": "module" and "test": "playwright test" to package.json]
+[Created playwright.config.js with webServer using serve . -l 3000]
+
+★ Insight ─────────────────────────────────────
+The key trick: analyzeCode() calls Gemini expecting JSON, then calls JSON.parse()
+on the response text. So the mock must return candidates[0].content.parts[0].text
+as a JSON string (doubly-serialized). The outer response is JSON (for
+response.json()), the inner text field is a JSON-serialized string that the app
+then parses itself.
+─────────────────────────────────────────────────
+
+[Created tests/code-smells.spec.js with full user flow test]
+[Ran: npx playwright test --reporter=line]
+
+RESULT: FAILED at toBeEnabled() — button stayed disabled after fill().
+
+The snapshot showed: char count stayed "0 / 20,000" even though the textarea had
+code. This meant onCodeInput() never fired. Switched fill() + dispatchEvent('input')
+approach, still failed.
+
+Investigated further: started serve manually and checked HTTP responses. Found that
+serve was redirecting /src/index.html → /src/index → /src (no trailing slash). The
+final page URL /src (no trailing slash) causes the browser to resolve the ES module
+<script src="js/app.js"> relative to the wrong base:
+
+  Base URL: http://localhost:3000/src  (no trailing slash)
+  → removes last path component ("src")
+  → base becomes http://localhost:3000/
+  → js/app.js resolves to http://localhost:3000/js/app.js  ← 404
+
+This is a silent ES module failure — no event listeners were ever attached.
+
+Fix: navigate to /src/ (with trailing slash). Serve returns index.html directly
+for directory URLs without a redirect. The trailing slash keeps the correct base
+URL so all relative imports resolve to /src/js/*.
+
+Also switched fill() to pressSequentially() which fires a native input event per
+keystroke, matching exactly what app.js listens for.
+
+[Updated test: page.goto('/src/') and pressSequentially(SMELLY_CODE)]
+[Ran test — failed at last assertion: #original-code contained SMELLY_CODE text,
+ not 'processUserData' — fixed assertion to match actual SMELLY_CODE content]
+[Final run: 1 passed (2.4s)]
+
+Files created:
+- package.json          — "type": "module", "test": "playwright test", devDeps
+- playwright.config.js  — webServer auto-starts serve on port 3000
+- tests/code-smells.spec.js — single E2E test, 12 assertions, zero real API calls
+
+Test flow:
+1.  Mock config.json → synthetic API key
+2.  Mock generativelanguage.googleapis.com → double-serialised JSON response
+3.  Navigate to /src/ (trailing slash — critical for ES module path resolution)
+4.  pressSequentially(SMELLY_CODE) → fires real input events → enables button
+5.  Assert button is enabled
+6.  Click Analyze
+7.  Wait for #results-section to lose 'hidden' class (timeout: 15s)
+8.  Assert summary text contains expected content
+9.  Assert #smell-count-badge shows "2 smells found"
+10. Assert 2 .smell-card elements with correct names
+11. Assert severity badges (Major, Minor)
+12. Assert #refactored-code contains refactored function
+13. Assert #original-code contains SMELLY_CODE verbatim
+
+================================================================================
+
+USER:
+Do two things:
+
+1. Write 2-3 sentences explaining what this test covers and why it's meaningful.
+   I'll need this for the README later.
+
+2. Save our full conversation to chats/phase3-testing.txt as a verbatim plain text
+   log in this exact format:
+
+USER:
+[my full prompt, copied exactly]
+
+A:
+[your full response, copied exactly]
+
+If there were multiple exchanges (debugging rounds), include all of them in order.
+
+Then run: git add -A && git commit -m "test: Playwright E2E test for code smell detection"
+
+================================================================================
+
+A:
+1. Test description (for README):
+
+The Playwright end-to-end test verifies the complete user-facing workflow of the
+Code Smells Detector: it opens the app in a real Chromium browser, types code with
+intentional smells into the editor, triggers analysis, and asserts that the detected
+smell names, severity badges, smell count, and refactored code all appear correctly
+in the UI. Both the Gemini API and config.json are fully mocked with page.route(),
+so the test runs deterministically with no real network calls and no API key
+required. This makes it a meaningful regression guard — any break in the rendering
+pipeline (ES module loading, API response parsing, or DOM updates in ui.js) will
+cause the test to fail.
+
+2. [Wrote this file: chats/phase3-testing.txt]
+
+[Ran: git add -A && git commit -m "test: Playwright E2E test for code smell detection"]
+
+================================================================================

@@ -1,0 +1,97 @@
+USER:
+# Context
+University SE course (22916). Building a single-page web app: "Automatic Code Smells Detector & Refactorer." User pastes code, app calls Google Gemini API, displays detected smells and refactored code.
+
+Grading: instructions (10%), LLM usage quality (20%), artifact quality (70%).
+
+# Constraints
+- The app runs on LOCALHOST ONLY. No deployment. The lecturer will clone the repo and run it on their machine.
+- A server is possible but NOT required. A simple frontend-only approach is perfectly acceptable since there are no security concerns on localhost.
+- The Feature LLM MUST be Google Gemini.
+- All application source code must live inside the src/ directory.
+- Keep things simple and practical — do not over-engineer.
+
+# Task: Phase 2 — Architecture
+First, read docs/requirements.md to understand the functional requirements.
+
+Then make and document all design decisions:
+1. Overall architecture
+2. Technology stack — choose and justify
+3. Frontend / backend responsibilities — decide if a backend is needed, justify your decision given the localhost constraint
+4. LLM integration model — how Gemini is called, prompt structure, response parsing
+5. Data flow — step by step from user input to displayed output
+6. File structure — every file and its purpose, app code inside src/
+7. Third-party libraries — list and justify each
+8. Team member responsibilities — divide across 3 members
+
+Create the file docs/architecture.md with your output. Use well-structured markdown.
+
+---
+
+A:
+`★ Insight ─────────────────────────────────────`
+The requirements specify `config.json` at runtime (FR-02.4), which means `fetch()` is needed to read it — and `fetch()` on a `file://` origin is blocked by CORS in all modern browsers. This makes a local HTTP server a **hard implicit dependency**, even though no "backend" logic is needed. Worth making this explicit in the architecture.
+`─────────────────────────────────────────────────`
+
+Now let me check the existing project layout before writing.
+
+[read docs/requirements.md, listed project files, read config.json and .gitignore]
+
+Good — `config.json` is already at the root and gitignored. Now I have everything needed to write the architecture document.
+
+`★ Insight ─────────────────────────────────────`
+Three things worth noting before writing this:
+1. NFR-04 prohibits the API key in the request URL — the Gemini REST API supports `x-goog-api-key` as a **header** instead of `?key=`, which satisfies this requirement cleanly.
+2. `fetch('/config.json')` requires an HTTP origin — `file://` will CORS-block it. A single-line Python server solves this without any "backend."
+3. ES Modules (`<script type="module">`) also fail on `file://`, reinforcing the need for a local server — but that's just `python -m http.server`.
+`─────────────────────────────────────────────────`
+
+[created docs/architecture.md and config.example.json]
+
+`★ Insight ─────────────────────────────────────`
+Notice the architecture has two "run it" dependencies that are easy to miss:
+1. **highlight.js via CDN** — the machine running the app needs internet access, not just to call Gemini but also to load the CSS/JS for syntax highlighting. If offline fallback matters, it should be vendored into `src/lib/`.
+2. **`AbortSignal.timeout()`** is a 2022 API — available in Chrome 103+ / Firefox 100+, which matches NFR-06's "latest stable" requirement exactly.
+`─────────────────────────────────────────────────`
+
+`docs/architecture.md` is written. Here's a summary of every decision made:
+
+---
+
+### Architecture Summary
+
+**1. Overall architecture** — Pure browser SPA. One Python command (`python -m http.server 8080`) serves the static files; there is no application backend.
+
+**2. Technology stack** — HTML5 + CSS3 + **Vanilla JS ES modules**. No framework, no build step. highlight.js from CDN for syntax highlighting. Choice is justified by zero build-tool friction for the grader.
+
+**3. Frontend/backend** — Frontend-only. Justified because: single user on localhost = no CORS problem calling Gemini from the browser, no auth needed, no data to persist across reloads, and a backend would add complexity with zero benefit.
+
+**4. LLM integration** — POST to `gemini-2.0-flash:generateContent`, API key in the **`x-goog-api-key` header** (not the URL — satisfies NFR-04), `response_mime_type: "application/json"` forces clean JSON output, `AbortSignal.timeout(30_000)` handles FR-02.6. Two prompt builders in `prompt.js` (analysis + follow-up).
+
+**5. Data flow** — Documented as a step-by-step diagram from config load → input → API call → state update → render → chat → export.
+
+**6. File structure** — 5 JS modules (`app.js`, `api.js`, `prompt.js`, `state.js`, `ui.js`) + `index.html` + `styles.css`, all inside `src/`. Each module has a single clear responsibility.
+
+**7. Libraries** — Only highlight.js. Everything else uses standard Web APIs.
+
+**8. Team responsibilities** — Split into three vertical slices: (1) Input & API, (2) Results display, (3) Chat/state/integration.
+
+---
+
+USER:
+Save our full conversation to chats/phase2-architecture.txt as a verbatim plain text log in this exact format:
+
+USER:
+[my full prompt, copied exactly]
+
+A:
+[your full response, copied exactly]
+
+If there were multiple exchanges, include all of them in order.
+
+Then run: git add -A && git commit -m "docs: Phase 2 architecture"
+
+---
+
+A:
+[saving conversation and committing]

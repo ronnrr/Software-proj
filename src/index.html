@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Smells Detector &amp; Refactorer</title>
+
+  <!-- highlight.js — syntax highlighting for code blocks (FR-04.1) -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
+        crossorigin="anonymous">
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app-wrapper">
+
+    <!-- ── Header ─────────────────────────────────────────────────── -->
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="header-logo">
+          <span class="header-icon" aria-hidden="true">⬡</span>
+          <h1 class="header-title">
+            Code Smell Detector
+            <span class="header-subtitle">&amp; Refactorer</span>
+          </h1>
+        </div>
+        <p class="header-desc">
+          Powered by Gemini 2.5 Flash Lite &mdash; paste your code to detect and fix code smells instantly
+        </p>
+      </div>
+    </header>
+
+    <!-- ── Main ───────────────────────────────────────────────────── -->
+    <main class="main-content">
+
+      <!-- Input Panel (FR-01) -->
+      <section class="panel input-panel" aria-label="Code input">
+        <div class="panel-header">
+          <h2 class="panel-title">Your Code</h2>
+          <div class="panel-actions">
+            <label for="language-select" class="sr-only">Programming language</label>
+            <select id="language-select"
+                    class="language-select"
+                    aria-label="Select programming language">
+              <option value="auto">Auto-detect</option>
+              <option value="Python">Python</option>
+              <option value="JavaScript">JavaScript</option>
+              <option value="TypeScript">TypeScript</option>
+              <option value="Java">Java</option>
+              <option value="C++">C++</option>
+              <option value="Go">Go</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <textarea
+          id="code-input"
+          class="code-input"
+          placeholder="Paste your source code here…"
+          maxlength="20000"
+          aria-label="Source code input"
+          aria-describedby="char-count"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+        ></textarea>
+
+        <div class="input-footer">
+          <span id="char-count"
+                class="char-count"
+                aria-live="polite"
+                aria-atomic="true">0 / 20,000</span>
+          <div class="input-buttons">
+            <button id="clear-btn"
+                    class="btn btn-secondary"
+                    aria-label="Clear all input and output">
+              Clear
+            </button>
+            <button id="analyze-btn"
+                    class="btn btn-primary"
+                    disabled
+                    aria-label="Analyze code for smells">
+              <span class="btn-icon" aria-hidden="true">▶</span>
+              Analyze
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Error Banner (FR-02.7) -->
+      <div id="error-banner"
+           class="error-banner hidden"
+           role="alert"
+           aria-live="assertive">
+        <span class="error-icon" aria-hidden="true">⚠</span>
+        <span id="error-message" class="error-message"></span>
+        <button id="error-dismiss"
+                class="error-dismiss"
+                aria-label="Dismiss error message">✕</button>
+      </div>
+
+      <!-- Loading Indicator (FR-02.5) -->
+      <div id="loading-indicator"
+           class="loading-indicator hidden"
+           role="status"
+           aria-live="polite"
+           aria-label="Analyzing your code with Gemini">
+        <div class="spinner" aria-hidden="true"></div>
+        <span class="loading-text">Analyzing with Gemini&hellip;</span>
+      </div>
+
+      <!-- Results Section (hidden until first analysis) -->
+      <div id="results-section" class="results-section hidden">
+
+        <!-- Summary (FR-03.6) -->
+        <section class="panel summary-panel" aria-label="Analysis summary">
+          <div class="panel-header">
+            <h2 class="panel-title">Summary</h2>
+          </div>
+          <p id="summary-text" class="summary-text"></p>
+        </section>
+
+        <!-- Smells Panel (FR-03) -->
+        <section class="panel smells-panel" aria-label="Detected code smells">
+          <div class="panel-header">
+            <h2 class="panel-title">Smells Detected</h2>
+            <span id="smell-count-badge"
+                  class="badge"
+                  aria-live="polite"
+                  aria-atomic="true"></span>
+          </div>
+          <div id="smells-list"
+               class="smells-list"
+               role="list"
+               aria-label="List of detected code smells"></div>
+        </section>
+
+        <!-- Code Comparison — side-by-side (FR-04.1, FR-04.4) -->
+        <section class="panel comparison-panel" aria-label="Code comparison">
+          <div class="panel-header">
+            <h2 class="panel-title">Code Comparison</h2>
+            <button id="copy-btn"
+                    class="btn btn-secondary btn-small"
+                    aria-label="Copy refactored code to clipboard">
+              Copy to Clipboard
+            </button>
+          </div>
+          <div class="code-comparison-grid">
+
+            <div class="code-pane">
+              <div class="code-pane-header">
+                <span class="code-pane-label">Original</span>
+                <span class="code-pane-tag" aria-label="Input code">INPUT</span>
+              </div>
+              <pre class="code-block" aria-label="Original source code"><!--
+             --><code id="original-code"></code><!--
+           --></pre>
+            </div>
+
+            <div class="code-pane">
+              <div class="code-pane-header">
+                <span class="code-pane-label">Refactored</span>
+                <span class="code-pane-tag refactored" aria-label="Refactored output">OUTPUT</span>
+              </div>
+              <pre class="code-block" aria-label="Refactored source code"><!--
+             --><code id="refactored-code"></code><!--
+           --></pre>
+            </div>
+
+          </div>
+        </section>
+
+      </div><!-- /results-section -->
+
+      <!-- Chat Panel (FR-05) — hidden until analysis is done -->
+      <section id="chat-panel"
+               class="panel chat-panel hidden"
+               aria-label="Follow-up chat with Gemini">
+        <div class="panel-header">
+          <h2 class="panel-title">Follow-up Questions</h2>
+          <button id="export-chat-btn"
+                  class="btn btn-secondary btn-small"
+                  aria-label="Export chat history as a text file">
+            Export Chat
+          </button>
+        </div>
+
+        <div id="chat-log"
+             class="chat-log"
+             role="log"
+             aria-live="polite"
+             aria-label="Chat message history"></div>
+
+        <div class="chat-input-row">
+          <input id="chat-input"
+                 type="text"
+                 class="chat-input"
+                 placeholder="Ask a follow-up question about the analysis&hellip;"
+                 aria-label="Follow-up question input"
+                 autocomplete="off">
+          <button id="chat-send-btn"
+                  class="btn btn-primary"
+                  aria-label="Send follow-up question">
+            Send
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ── Footer ─────────────────────────────────────────────────── -->
+    <footer class="app-footer">
+      <p>22916 Software Engineering &nbsp;&middot;&nbsp; Code Smells Detector &amp; Refactorer &nbsp;&middot;&nbsp; Gemini 2.5 Flash Lite</p>
+    </footer>
+
+  </div><!-- /app-wrapper -->
+
+  <!-- highlight.js runtime -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"
+          crossorigin="anonymous"></script>
+
+  <!-- App entry point (ES module; deferred by default) -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
